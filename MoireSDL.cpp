@@ -1,7 +1,7 @@
 #include <SDL/SDL.h>
 #include <cmath>
 #include <ctime>
-#include <queue>
+#include <vector>
 
 #ifdef WIN32
 #include <windows.h>
@@ -30,7 +30,7 @@ void DrawLine( SDL_Surface *drawto, int x1, int y1, int x2, int y2, Uint32 color
 {
 	double dx = x2 - x1;
 	double dy = y2 - y1;
-	double length = std::max<double>( fabs(dx), fabs(dy) );
+	size_t length = std::max<double>( fabs(dx), fabs(dy) ) + 0.5;
 	dx /= length;
 	dy /= length;
 	
@@ -38,7 +38,7 @@ void DrawLine( SDL_Surface *drawto, int x1, int y1, int x2, int y2, Uint32 color
 	double x = x1;
 	double y = y1;
 	
-	for( double i = 0.; i <= length; i += 1. )
+	for( size_t i = 0; i <= length; i ++ )
 	{
 		pixels[ ((int)y) * drawto->w + (int)x ] = color;
 		x += dx;
@@ -88,12 +88,13 @@ int main( int argc, char **argv )
 	colors.push_back(0xFF0000); // Red
 	colors.push_back(0xFFFF00); // Yellow
 	
-	double x[VERTICES], y[VERTICES], dx[VERTICES], dy[VERTICES];
-	std::queue<int> history;
+	int x[VERTICES], y[VERTICES], dx[VERTICES], dy[VERTICES];
+	int history[ VERTICES*4 * LENGTH ] = {0};
+	size_t history_index = 0;
 	
 	srand( time(NULL) );
 	
-	for( int i = 0; i < VERTICES; i ++ )
+	for( size_t i = 0; i < VERTICES; i ++ )
 	{
 		x[ i ] = rand() % screen->w;
 		y[ i ] = rand() % screen->h;
@@ -114,34 +115,28 @@ int main( int argc, char **argv )
 		
 		SDL_LockSurface( screen );
 		
-		while( history.size() > VERTICES * 4 * LENGTH )
+		for( size_t i = 0; i < VERTICES; i ++ )
 		{
-			int x1 = history.front();
-			history.pop();
-			int y1 = history.front();
-			history.pop();
-			int x2 = history.front();
-			history.pop();
-			int y2 = history.front();
-			history.pop();
-			
-			DrawLine( screen, x1, y1, x2, y2, 0 );
+			size_t v = (history_index + i*4) % (VERTICES*4 * LENGTH);
+			DrawLine( screen, history[ v ], history[ v + 1 ], history[ v + 2 ], history[ v + 3 ], 0 );
 		}
 		
-		for( int i = 0; i < VERTICES; i ++ )
+		for( size_t i = 0; i < VERTICES; i ++ )
 		{
 			DrawLine( screen, x[ i ], y[ i ], x[ (i + 1) % VERTICES ], y[ (i + 1) % VERTICES ], color );
-			
-			history.push( x[ i ] );
-			history.push( y[ i ] );
-			history.push( x[ (i + 1) % VERTICES ] );
-			history.push( y[ (i + 1) % VERTICES ] );
+			size_t v = (history_index + i*4) % (VERTICES*4 * LENGTH);
+			history[ v     ] = x[ i ];
+			history[ v + 1 ] = y[ i ];
+			history[ v + 2 ] = x[ (i + 1) % VERTICES ];
+			history[ v + 3 ] = y[ (i + 1) % VERTICES ];
 		}
+		
+		history_index = (history_index + VERTICES*4) % (VERTICES*4 * LENGTH);
 		
 		SDL_UnlockSurface( screen );
 		SDL_UpdateRect( screen, 0, 0, screen->w, screen->h );
 		
-		for( int i = 0; i < VERTICES; i ++ )
+		for( size_t i = 0; i < VERTICES; i ++ )
 		{
 			if( (x[ i ] + dx[ i ] >= screen->w) || (x[ i ] + dx[ i ] < 0) )
 				dx[ i ] *= -1;
