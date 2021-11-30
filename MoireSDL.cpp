@@ -102,6 +102,7 @@ int main( int argc, char **argv )
 		dy[ i ] = ((rand() % 2) * 2 - 1) * 4;
 	}
 	
+	int mouse_motion = 0;
 	SDL_Event event;
 	while( SDL_PollEvent( &event ) ) {}
 	
@@ -151,7 +152,9 @@ int main( int argc, char **argv )
 		
 		while( SDL_PollEvent( &event ) )
 		{
-			if( (event.type == SDL_QUIT) || (event.type == SDL_MOUSEMOTION) || (event.type == SDL_MOUSEBUTTONDOWN) || (event.type == SDL_KEYDOWN) )
+			if( event.type == SDL_MOUSEMOTION )
+				mouse_motion ++;
+			if( (event.type == SDL_QUIT) || (event.type == SDL_MOUSEBUTTONDOWN) || (event.type == SDL_KEYDOWN) || (mouse_motion >= 2) )
 				running = false;
 		}
 	}
